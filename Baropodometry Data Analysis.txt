@@ -1,0 +1,355 @@
+# -- -- -- -- -- ---- -- - - - - -- - - - --- -- - - -- - ---- - - -- - - - - -
+# R Code 
+# Title:  A Baropodometric Analysis of Postural Therapy
+#         Supported by Immersive Virtual Reality
+# Date:   04-Oct-2023
+# Authors: Ígor A. Moraes, Eduardo G. Q. Palmeira, Raul Matsushita,
+#          Alexandre G. de Siqueira, Dean A. R. de Oliveira,
+#          Alexandre Cardoso, and Edgard A. Lamounier Jr.
+# - --- - - -- - -- - -- - - - - - --- -- - - - -- - - - - -- - -- - - - - - - -
+
+# ------------------------------------------------------------------------------
+# --- call required packages ---------------------------------------------------
+# --- and functions ------------------------------------------------------------
+# ------------------------------------------------------------------------------
+
+# ggpubr:    creating easily publication ready plots
+# rstatix:   pipe-friendly R functions for easy statistical analyses
+
+# install.packages("ggpubr")
+# install.packages("rstatix")
+# install.packages("openxlsx")
+
+require(ggpubr)
+require(rstatix)
+require(openxlsx)
+require(reshape2)
+require(xtable)
+require(dplyr)
+
+# ------------------------------------------------------------------------------
+# --- set working folder -------------------------------------------------------
+# ------------------------------------------------------------------------------
+# change the path accordingly #
+
+getwd()
+setwd("C:/Users/raulm/OneDrive/Documentos/Pesquisas/W_baropodometric")
+
+# ------------------------------------------------------------------------------
+# --- reading-------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+
+dd     <- read.xlsx("dadosA.xlsx")
+
+# Dictionary of variables 
+# ------------------------------------------------------------------------------
+# LRW = left rearfoot weight
+# LFW = left forefoot weight (1-LRW)
+# RRW = right rearfoot weight
+# RFW = right forefoot weight
+# AWD = anterior weight distribution
+# PWD = posterior weight distribution
+# LFP = left foot pressure (kgf/cm²)
+# RFP = right foot pressure (kgf/cm²)
+# LFMP = left foot maximum pressure (kgf/cm²)
+# RFMP = right foot maximum pressure (kgf/cm²)
+# LFCS = left foot contact surface
+# RFCS = right foot contact surface
+# LFCP = left foot center of pressure (cm)
+# RFCP = right foot center of pressure (cm)
+
+# suffixes:
+# .b   = before
+# .a   = after
+
+# --------------------------------------------------------
+# Get left–right foot asymmetry indexes
+# (see Park et al., 2009; Ma, 2020; Kim, 2015)
+# --------------------------------------------------------
+
+dd$group <- recode(dd$group, with = "experimental", without = "control")
+group   <- as.factor(dd$group)
+RW.a    <-  abs(dd$LRW.a-dd$RRW.a)
+RW.b    <-  abs(dd$LRW.b-dd$RRW.b)
+WD.a    <-  abs(dd$PWD.a-dd$AWD.a)
+WD.b    <-  abs(dd$PWD.b-dd$AWD.b)
+FP.a    <-  abs(dd$LFP.a-dd$RFP.a)
+FP.b    <-  abs(dd$LFP.b-dd$RFP.b)
+FMP.a   <- abs(dd$LFMP.a-dd$RFMP.a)
+FMP.b   <- abs(dd$LFMP.b-dd$RFMP.b)
+FCS.a   <- abs(dd$LFCS.a-dd$RFCS.a)
+FCS.b   <- abs(dd$LFCS.b-dd$RFCS.b)
+FCP.a   <- abs(dd$LFCP.a-dd$RFCP.a)
+FCP.b   <- abs(dd$LFCP.b-dd$RFCP.b)
+
+dataset.i  <- data.frame(group,RW.b,RW.a,WD.b,WD.a,FP.b,FP.a,FMP.b,FMP.a,FCS.b,FCS.a,FCP.b,FCP.a)
+
+# ------------------------------------------------------------------------------------------------
+# dataset of the paired differences
+# -------------------------------------------------------------------------------------------------
+
+RW.d  <- RW.a  - RW.b
+WD.d  <- WD.a  - WD.b
+FP.d  <- FP.a  - FP.b
+FMP.d <- FMP.a - FMP.b
+FCS.d <- FCS.a - FCS.b
+FCP.d <- FCP.a - FCP.b
+
+dataset.d  <- data.frame(group,RW.d,WD.d,FP.d,FMP.d,FCS.d,FCP.d)
+
+# RW = rearfoot weight
+# WD = weight distribution
+# FP = foot pressure (kgf/cm²)
+# FMP = foot maximum pressure (kgf/cm²)
+# FCS = foot contact surface
+# FCP = foot center of pressure (cm)
+
+# -------------------------------------------------------------------------------------------------------
+# Box plot 1
+# -------------------------------------------------------------------------------------------------------
+dataset.boxplot    <- melt(dataset.i[,c(1,6,7)], id.var = "group")
+
+v.ref <- aggregate(value ~ variable, data = dataset.boxplot,median)
+
+bxp <- ggboxplot(
+  dataset.boxplot, x = "variable", y = "value",
+  color = "group", palette = "lancet", add = "jitter"
+  )
+bxp + 
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),                  
+          plot.margin=unit(c(2,2,15,2), "mm"),
+          axis.title.x = element_text(vjust=-5),
+          panel.border = element_rect(colour = "black", fill=NA, size=0.5) ) +
+    geom_hline(yintercept = v.ref[1,2],linetype="dashed") +
+    xlab(expression("foot pressure"))+
+    ylab(expression("\nkgf/cm²"))+
+    scale_x_discrete(labels=rep(c("before","after"),2))
+
+ggsave("boxplot1.png",width = 6, height = 4, device='png', dpi=700)
+
+# -------------------------------------------------------------------------------------------------------
+# Box plot 2
+# -------------------------------------------------------------------------------------------------------
+dataset.boxplot    <- melt(dataset.i[,c(1,8,9)], id.var = "group")
+
+v.ref <- aggregate(value ~ variable, data = dataset.boxplot,median)
+
+bxp <- ggboxplot(
+  dataset.boxplot, x = "variable", y = "value",
+  color = "group", palette = "lancet", add = "jitter"
+  )
+bxp + 
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),                  
+          plot.margin=unit(c(2,2,15,2), "mm"),
+          axis.title.x = element_text(vjust=-5),
+          panel.border = element_rect(colour = "black", fill=NA, size=0.5) ) +
+    geom_hline(yintercept = v.ref[1,2],linetype="dashed") +
+    xlab(expression("maximum foot pressure"))+
+    ylab(expression("\nkgf/cm²"))+
+    scale_x_discrete(labels=rep(c("before","after"),2))
+
+ggsave("boxplot2.png",width = 6, height = 4, device='png', dpi=700)
+
+# -------------------------------------------------------------------------------------------------------
+# Box plot 3
+# -------------------------------------------------------------------------------------------------------
+dataset.boxplot       <- melt(dataset.i[,c(1,2,3,10,11)], id.var = "group")
+dataset.boxplot$value <-dataset.boxplot$value*100
+
+v.ref <- aggregate(value ~ variable, data = dataset.boxplot,median)
+
+
+bxp <- ggboxplot(
+  dataset.boxplot, x = "variable", y = "value",
+  color = "group", palette = "lancet", add = "jitter"
+  )
+bxp + 
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),     
+          axis.title.x = element_blank(),     
+          plot.margin=unit(c(2,2,15,2), "mm"),
+          panel.border = element_rect(colour = "black", fill=NA, size=0.5) ) +
+    geom_segment(aes(x=1, xend=2.5, y= v.ref[1,2], yend= v.ref[1,2]), linetype="dashed") +
+    geom_segment(aes(x=2.5, xend=4.5, y= v.ref[3,2], yend= v.ref[3,2]), linetype="dashed") +
+    ylab(expression("\n%"))+
+    scale_x_discrete(labels=rep(c("before","after"),2))+
+   coord_cartesian(ylim=c(0,30), xlim=c(1,4), clip="off") +
+annotate("text", x=1.5, y=-5, label=c("","","rearfoot weight","rearfoot weight")) +
+annotate("text", x=3.5, y=-5, label=c("","","contact surface","contact surface"))
+
+ggsave("boxplot3.png",width = 6, height = 4, device='png', dpi=700)
+
+
+# -------------------------------------------------------------------------------------------------------
+# Box plot 4
+# -------------------------------------------------------------------------------------------------------
+dataset.boxplot       <- melt(dataset.i[,c(1,4,5)], id.var = "group")
+dataset.boxplot$value <-dataset.boxplot$value*100
+
+v.ref <- aggregate(value ~ variable, data = dataset.boxplot,median)
+
+bxp <- ggboxplot(
+  dataset.boxplot, x = "variable", y = "value",
+  color = "group", palette = "lancet", add = "jitter"
+  )
+bxp + 
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),                  
+          plot.margin=unit(c(2,2,15,2), "mm"),
+          axis.title.x = element_text(vjust=-5),
+          panel.border = element_rect(colour = "black", fill=NA, size=0.5) ) +
+    geom_hline(yintercept = v.ref[1,2],linetype="dashed") +
+    xlab(expression("weight distribution"))+
+    ylab(expression("\n%"))+
+    scale_x_discrete(labels=rep(c("before","after"),2))
+
+ggsave("boxplot4.png",width = 6, height = 4, device='png', dpi=700)
+
+# -------------------------------------------------------------------------------------------------------
+# Box plot 5
+# -------------------------------------------------------------------------------------------------------
+dataset.boxplot       <- melt(dataset.i[,c(1,12,13)], id.var = "group")
+
+v.ref <- aggregate(value ~ variable, data = dataset.boxplot,median)
+
+bxp <- ggboxplot(
+  dataset.boxplot, x = "variable", y = "value",
+  color = "group", palette = "lancet", add = "jitter"
+  )
+bxp + 
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),                  
+          plot.margin=unit(c(2,2,15,2), "mm"),
+          axis.title.x = element_text(vjust=-5),
+          panel.border = element_rect(colour = "black", fill=NA, size=0.5) ) +
+    geom_hline(yintercept = v.ref[1,2],linetype="dashed") +
+    xlab(expression("center of pressure"))+
+    ylab(expression("cm"))+
+    scale_x_discrete(labels=rep(c("before","after"),2))
+
+ggsave("boxplot5.png",width = 6, height = 4, device='png', dpi=700)
+
+# -------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------
+# Remark: The variables in the experimental group have means closer to zero.
+# -------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------
+
+
+# --------------------------------------------------------------------------------------------
+# Get statistics
+# --------------------------------------------------------------------------------------------
+
+semi.table      <- function(dataset,column)
+{
+# debug ------------------------------------------
+# delete/hide this block
+#dataset<- dataset.d
+#column <- 4
+# debug ------------------------------------------
+
+var.name           <-  colnames(dataset)[column]
+data.two           <-  dataset[,c(1,column)]
+colnames(data.two) <- c("group","dif")
+
+data.control       <-  subset(data.two,group=="without")
+data.case          <-  subset(data.two,group=="with")
+
+mean.control       <- mean(data.control$dif)
+mean.case          <- mean(data.case$dif)
+mean.two           <- mean(data.two$dif)
+
+median.control     <- median(data.control$dif)
+median.case        <- median(data.case$dif)
+median.two         <- median(data.two$dif)
+
+sd.control         <- sd(data.control$dif)
+sd.case            <- sd(data.case$dif)
+sd.two             <- sd(data.two$dif)
+
+st.control         <- shapiro.test(data.control$dif)
+st.case            <- shapiro.test(data.case$dif)
+st.two             <- shapiro.test(data.two$dif)
+
+tt.control         <- t.test(data.control$dif,mu=0,alternative="less")
+tt.case            <- t.test(data.case$dif,mu=0,alternative="less")
+tt.two             <- t.test(data.control$dif,data.case$dif, paired=FALSE,alternative="less")
+
+wt.control      <- data.control   %>% rstatix::wilcox_test(dif~ 1,mu=0,alternative="less")
+wt.case         <- data.case      %>% rstatix::wilcox_test(dif ~ 1,mu=0,alternative="less")
+wt.two          <- data.two       %>% rstatix::wilcox_test(dif ~ group,mu = 0, alternative="less")
+
+wef.control     <- data.control   %>% rstatix::wilcox_effsize(dif~ 1,mu=0)
+wef.case        <- data.case      %>% rstatix::wilcox_effsize(dif ~ 1,mu=0)
+wef.two         <- data.two       %>% rstatix::wilcox_effsize(dif ~ group,mu = 0)
+
+cohens.two      <- data.two       %>% cohens_d(dif ~ group, paired = FALSE)
+cohens.control  <- data.control   %>% cohens_d(dif~1,mu=0)
+cohens.case     <- data.case      %>% cohens_d(dif~1,mu=0)
+
+n.control <- dim(data.control)[1]
+n.case    <- dim(data.case)[1]
+n.tot     <- dim(data.two)[1]
+
+names   <- c("variable","source", "n.size","p.value (Shapiro-Wilk)","t statistic", "p.value (t)","Wilcoxon (W)", "p.value (W)", "effect size (t)", "magnitude","effect size (W)", "magnitude")
+control <- data.frame(var.name,"control",n.control,round(st.control$p.value,3),round(tt.control$statistic,3),round(tt.control$p.value,3), round(wt.control$statistic,3), round(wt.control$p,3),round(cohens.control$effsize,3),cohens.control$magnitude,round(wef.control$effsize,3),wef.control$magnitude)
+case    <- data.frame(var.name,"case", n.case,   round(st.case$p.value,3)   ,round(tt.case$statistic,3)   ,round(tt.case$p.value,3), round(wt.case$statistic,3),round(wt.case$p,3),round(cohens.case$effsize,3),cohens.case$magnitude,round(wef.case$effsize,3),wef.case$magnitude)
+between <- data.frame(var.name,"between",n.tot,round(st.two$p.value,3),round(tt.two$statistic,3)   ,round(tt.two$p.value,3),round(wt.two$statistic,3),round(wt.two$p,3), round(cohens.two$effsize,3) ,cohens.two$magnitude,round(wef.two$effsize,3),wef.two$magnitude)
+
+names.summary   <-          c("variable","source", "n.size","mean","median","sd")
+control.summary <- data.frame(var.name,"control",n.control,round(mean.control,3),round(median.control,3),round(sd.control,3))
+case.summary    <- data.frame(var.name,"case",n.case,round(mean.case,3),round(median.case,3),round(sd.case,3))
+between.summary <- data.frame(var.name,"total",n.tot,round(mean.two,3),round(median.two,3),round(sd.two,3))
+
+
+colnames(control) <- names
+colnames(case)    <- names
+colnames(between) <- names
+rownames(control) <- NULL
+rownames(case)    <- NULL
+rownames(between) <- NULL
+
+colnames(control.summary) <- names.summary
+colnames(case.summary)    <- names.summary
+colnames(between.summary) <- names.summary
+
+rownames(control.summary) <- NULL
+rownames(case.summary)    <- NULL
+rownames(between.summary) <- NULL
+
+
+partial.table          <- rbind(control,case,between)
+partial.table.summary  <- rbind(control.summary,case.summary,between.summary)
+
+return(list(partial.table.summary,partial.table))
+}
+
+table.1.x <- semi.table(dataset.d,2)
+table.0 <-table.1.x[[1]]
+table.1 <-table.1.x[[2]]
+
+for (k in 3:ncol(dataset.d))
+{
+table.1.x <- semi.table(dataset.d,k)
+table.0 <-rbind(table.0,table.1.x[[1]])
+table.1 <-rbind(table.1,table.1.x[[2]])
+}
+
+table.0
+table.1
+
+# print(xtable(table.0, type = "latex"), file = "table0.tex")
+# print(xtable(table.1, type = "latex"), file = "table1.tex")
+
+table.2 <- table.1[,c(1,2,3,7,8,11,12)]
+print(xtable(table.2, type = "latex"), file = "table2.tex")
+
+# ------------------------------------------------------------------------------------------------------- 
+# -------------------------------------------------------------------------------------------------------
+
+
+
+
+        
